@@ -2,16 +2,12 @@ use libc::usleep;
 use ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE;
 use ncurses::*;
 use rand::Rng;
+use std::process;
 
+#[derive(PartialEq)]
 struct Point {
     x: i32,
     y: i32,
-}
-
-impl PartialEq for Point {
-    fn eq(&self, other: &Self) -> bool {
-        return self.x == other.x && self.y == other.y;
-    }
 }
 
 #[derive(PartialEq)]
@@ -34,11 +30,11 @@ struct Food {
 
 fn move_snake(snake: &mut Snake, food: &mut Food) -> Result<(), String> {
     match hit_the_wall(&snake) {
-        true => return Err(String::from("hit the walll")),
+        true => return Err(String::from("Hit the wall.")),
         false => {}
     }
     match crash_body(snake) {
-        true => return Err(String::from("you crash body")),
+        true => return Err(String::from("Hit the body.")),
         false => {}
     }
     match get_food(snake, food) {
@@ -104,7 +100,7 @@ fn next_head(snake: &Snake) -> Point {
     };
 }
 
-fn add_snake(snake: &Snake) {
+fn show_snake(snake: &Snake) {
     for e in &snake.snake {
         mvaddch(e.y, e.x, 'O' as u32);
     }
@@ -131,11 +127,11 @@ fn get_food(snake: &Snake, food: &Food) -> bool {
     return head.x == food.x && head.y == food.y;
 }
 
-fn add_food(food: &Food) {
+fn show_food(food: &Food) {
     mvaddch(food.y, food.x, 'O' as u32);
 }
 
-fn add_wall() {
+fn show_wall() {
     for i in 1..(COLS() - 1) {
         mvaddch(0, i, ACS_HLINE());
     }
@@ -154,7 +150,7 @@ fn add_wall() {
     mvaddch(LINES() - 1, 0, ACS_LLCORNER());
 }
 
-fn hit_key(snake: &mut Snake) {
+fn hit_key(snake: &mut Snake, food: &mut Food) {
     match getch() {
         KEY_UP => {
             if snake.dir == SnakeDir::LEFT || snake.dir == SnakeDir::RIGHT {
@@ -178,6 +174,14 @@ fn hit_key(snake: &mut Snake) {
         }
         _ => {}
     };
+    match move_snake(snake, food) {
+        Ok(()) => {}
+        Err(info) => {
+            endwin();
+            println!("{}\nGame Over", info);
+            process::exit(-1);
+        }
+    }
 }
 
 fn win_size_change(snake: &Snake, food: &mut Food) -> Result<(), String> {
@@ -194,7 +198,7 @@ fn win_size_change(snake: &Snake, food: &mut Food) -> Result<(), String> {
             clear();
         }
         for p in &snake.snake {
-            if p.x < 0 || p.x > COLS() - 1 || p.y <01 || p.y > LINES() - 1 {
+            if p.x < 0 || p.x > COLS() - 1 || p.y < 01 || p.y > LINES() - 1 {
                 endwin();
                 return Err(String::from("snake is lost"));
             }
@@ -222,15 +226,6 @@ fn main() {
     };
     let mut food = create_food(&snake);
     loop {
-        hit_key(&mut snake);
-        match move_snake(&mut snake, &mut food) {
-            Ok(()) => {}
-            Err(info) => {
-                endwin();
-                println!("{}\nGame Over", info);
-                return;
-            }
-        }
         match win_size_change(&snake, &mut food) {
             Ok(()) => {}
             Err(info) => {
@@ -239,10 +234,12 @@ fn main() {
                 return;
             }
         }
-        add_wall();
-        add_snake(&snake);
-        add_food(&food);
+        hit_key(&mut snake, &mut food);
+        show_wall();
+        show_snake(&snake);
+        show_food(&food);
         refresh();
+        while getch() != -1 {}
         match snake.dir {
             SnakeDir::UP => unsafe { usleep(400000) },
             SnakeDir::DOWN => unsafe { usleep(400000) },
