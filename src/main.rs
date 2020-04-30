@@ -29,24 +29,20 @@ struct Food {
 }
 
 fn move_snake(snake: &mut Snake, food: &mut Food) -> Result<(), String> {
-    match hit_the_wall(&snake) {
-        true => return Err(String::from("Hit the wall.")),
-        false => {}
+    if hit_the_wall(&snake) {
+        return Err(String::from("Hit the wall."));
     }
-    match crash_body(snake) {
-        true => return Err(String::from("Hit the body.")),
-        false => {}
+    if crash_body(snake) {
+        return Err(String::from("Hit the body."));
     }
-    match get_food(snake, food) {
-        true => {
-            snake.snake.insert(0, next_head(snake));
-            *food = create_food(&snake);
-        }
-        false => {
-            let tail = snake.snake.pop().unwrap();
-            mvaddch(tail.y, tail.x, ' ' as u32);
-            snake.snake.insert(0, next_head(snake));
-        }
+    if get_food(snake, food) {
+        snake.snake.insert(0, next_head(snake));
+        *food = create_food(&snake);
+    }
+    else {
+        let tail = snake.snake.pop().unwrap();
+        mvaddch(tail.y, tail.x, ' ' as u32);
+        snake.snake.insert(0, next_head(snake));
     }
     Ok(())
 }
@@ -80,7 +76,7 @@ fn hit_the_wall(snake: &Snake) -> bool {
 
 fn next_head(snake: &Snake) -> Point {
     let head = &snake.snake[0];
-    return match snake.dir {
+    match snake.dir {
         SnakeDir::UP => Point {
             x: head.x,
             y: head.y + 1,
@@ -97,7 +93,7 @@ fn next_head(snake: &Snake) -> Point {
             x: head.x + 1,
             y: head.y,
         },
-    };
+    }
 }
 
 fn show_snake(snake: &Snake) {
@@ -107,24 +103,24 @@ fn show_snake(snake: &Snake) {
 }
 
 fn crash_body(snake: &Snake) -> bool {
-    return snake.snake.contains(&next_head(snake));
+    snake.snake.contains(&next_head(snake))
 }
 
 fn create_food(snake: &Snake) -> Food {
     let mut rng = rand::thread_rng();
-    let x = rng.gen_range(1, COLS() - 1);
-    let y = rng.gen_range(1, LINES() - 1);
+    let food_x = rng.gen_range(1, COLS() - 1);
+    let food_y = rng.gen_range(1, LINES() - 1);
     for e in &snake.snake {
-        if e.x == x && e.y == y {
-            return create_food(&snake);
+        if e.x == food_x && e.y == food_y {
+            return create_food(snake);
         }
     }
-    return Food { x: x, y: y };
+    Food { x: food_x, y: food_y }
 }
 
 fn get_food(snake: &Snake, food: &Food) -> bool {
     let head = &snake.snake[0];
-    return head.x == food.x && head.y == food.y;
+    head.x == food.x && head.y == food.y
 }
 
 fn show_food(food: &Food) {
@@ -198,7 +194,7 @@ fn win_size_change(snake: &Snake, food: &mut Food) -> Result<(), String> {
             clear();
         }
         for p in &snake.snake {
-            if p.x < 0 || p.x > COLS() - 1 || p.y < 01 || p.y > LINES() - 1 {
+            if p.x < 0 || p.x > COLS() - 1 || p.y < 1 || p.y > LINES() - 1 {
                 endwin();
                 return Err(String::from("snake is lost"));
             }
@@ -241,10 +237,10 @@ fn main() {
         refresh();
         while getch() != -1 {}
         match snake.dir {
-            SnakeDir::UP => unsafe { usleep(400000) },
-            SnakeDir::DOWN => unsafe { usleep(400000) },
-            SnakeDir::LEFT => unsafe { usleep(200000) },
-            SnakeDir::RIGHT => unsafe { usleep(200000) },
+            SnakeDir::UP => unsafe { usleep(400_000) },
+            SnakeDir::DOWN => unsafe { usleep(400_000) },
+            SnakeDir::LEFT => unsafe { usleep(200_000) },
+            SnakeDir::RIGHT => unsafe { usleep(200_000) },
         };
     }
 }
